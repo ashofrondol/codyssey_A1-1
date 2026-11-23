@@ -11,6 +11,7 @@
 - [최종 결과물](#최종-결과물)
 - [프로젝트 구조](#프로젝트-구조)
 - [개발 환경과 제약 사항](#개발-환경과-제약-사항)
+- [데이터셋 후보](#데이터셋-후보)
 - [실행 방법](#실행-방법)
 - [할 일](#할-일)
 - [보너스 과제](#보너스-과제)
@@ -59,6 +60,7 @@ codyssey_A1-1/
 │   └── pipeline.py              # (예정) DataAnalyzer 클래스: 로드, 전처리, 피처 엔지니어링, RFM
 ├── notebooks/
 │   └── analysis_report.ipynb    # (예정) EDA, 통계 분석, 시각화, RFM 세분화 리포트
+├── data/                        # (예정) 원본 데이터. 용량과 라이선스 때문에 git에서 제외
 ├── docs/
 │   └── A1-1.pdf                 # 과제 명세
 └── README.md
@@ -89,6 +91,73 @@ codyssey_A1-1/
 - Kaggle, AI Hub 등에서 이커머스/상품 관련 데이터를 수집하거나 제공된 샘플을 사용한다.
 - 이미지 데이터는 NumPy 배열 형태로 변환하여 사용한다.
 - 공개 라이선스(CC-BY, MIT 등) 데이터를 우선 사용하고, 출처를 반드시 명시한다.
+
+## 데이터셋 후보
+
+명세의 데이터 조건을 채울 수 있는 공개 데이터셋을 조사한 결과다(2026-11-23 기준). 라이선스는 "확인"이라고 적은 것만 원문 페이지에서 직접 확인했다.
+
+**명세가 데이터에 요구하는 것**
+
+| 필요한 것 | 어디서 필요한가 |
+|---|---|
+| 1,000건 이상, 컬럼 8개 이상 | 할 일 1 |
+| 수치형, 범주형, 날짜형, 이미지(배열) 중 3가지 이상 | 할 일 1 |
+| 이미지 배열 (평균·표준편차 피처) | 할 일 3 |
+| 상품명 텍스트 (단어 수 피처) | 할 일 3 |
+| 거래 데이터: `customer_id`, `order_date`, `amount`(또는 price × qty) | 할 일 1, 7 (RFM) |
+| 공개 라이선스(CC-BY, MIT 등) 우선, 출처 명시 | 데이터셋 조건 |
+
+### 먼저 확인할 것: 제공 샘플
+
+명세는 "수집하거나 **제공된 샘플**을 사용한다"고 한다. 과정에서 주는 샘플 데이터가 있으면 그것이 조건을 가장 확실하게 만족한다. 운영진에게 먼저 확인한다.
+
+### 추천 조합 A: Online Retail II + Fashion Product Images (Small)
+
+하나의 공개 데이터셋으로는 거래, 상품명, 이미지를 모두 갖춘 것을 찾지 못했다. 그래서 역할을 나눠 두 개를 쓴다.
+
+| 역할 | 데이터셋 | 라이선스 | 규모 |
+|---|---|---|---|
+| 거래, RFM, 가격·날짜 분석 | [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) | CC BY 4.0 (확인) | 1,067,371건, 컬럼 8개 (2009-12 ~ 2011-12, 영국 온라인 선물용품 쇼핑몰) |
+| 상품 이미지, 상품명, 카테고리 | [Fashion Product Images (Small)](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-small) | MIT (확인) | 상품 약 4.4만 개, `styles.csv` 컬럼 10개 + 작은 JPG 이미지 |
+
+| 요구사항 | 해결 방법 |
+|---|---|
+| RFM (할 일 7) | Online Retail II의 `Customer ID`, `InvoiceDate`, `Quantity × Price` |
+| 결측치 대치 (할 일 4) | Online Retail II는 `Customer ID`가 빈 행이 많다(OpenML 미러 기준 24만여 건). `Price`·`Description` 등도 그룹별 대치 대상으로 살펴본다 |
+| IQR 이상치 (할 일 4) | 취소 주문(송장 번호가 `C`로 시작)은 수량이 음수이고, 대량 도매 주문은 극단값이라 연습하기 좋다 |
+| 통계·상관 분석 (할 일 5) | `Quantity`, `Price`, 매출. 상품 쪽은 이미지 평균·표준편차, 상품명 단어 수 |
+| 6종 시각화 (할 일 6) | 라인차트는 월별 매출, 막대그래프는 카테고리 빈도나 세그먼트별 고객 수 |
+| 이미지·텍스트 피처 (할 일 3) | Fashion 이미지 → 평균·표준편차, `productDisplayName` → 단어 수 |
+| 코호트 분석 (보너스 2) | 가입일이 없으므로 **첫 구매 월**을 가입 월 대신 쓴다 (명세에서 확인할 점 참고) |
+
+**약점**: 두 데이터셋은 서로 다른 회사의 데이터라 상품이 연결되지 않는다. "상품 데이터 분석"과 "고객 거래 분석"을 두 흐름으로 나누고, 그렇게 나눈 이유를 리포트에 밝힌다.
+
+### 추천 조합 B: 이미지 읽기 문제를 피하고 싶을 때
+
+조합 A의 이미지 대신 [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist)(MIT, Zalando)를 쓴다. 28×28 흑백 의류 이미지 70,000장과 10종 라벨이 바이너리(ubyte) 또는 CSV 형태로 있어서, **`imread()` 없이 바로 NumPy 배열로 읽을 수 있다.** 대신 상품명 텍스트가 없으므로 텍스트 피처는 Online Retail II의 `Description`(상품명)으로 만든다.
+
+### 후보 전체 비교
+
+| 데이터셋 | 라이선스 | 거래 | 상품명 | 이미지 | 판단 |
+|---|---|---|---|---|---|
+| [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) | CC BY 4.0 (확인) | O | O | X | **거래·RFM용 1순위** |
+| [UCI Online Retail](https://archive.ics.uci.edu/dataset/352/online+retail) | CC BY 4.0 | O | O | X | 위 데이터의 2010~2011년 부분(약 54만 건). 더 가볍게 하려면 이것 |
+| [Fashion Product Images (Small)](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-small) | MIT (확인) | X | O | O (JPG) | **이미지·상품명용 1순위** |
+| [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) | MIT | X | X | O (배열) | 이미지를 배열로 바로 쓰고 싶을 때 |
+| [Amazon Berkeley Objects (ABO)](https://amazon-berkeley-objects.s3.amazonaws.com/index.html) | CC BY 4.0 (확인) | X | O (다국어, 한국어 포함) | O (JPG, 최대 256px 묶음 3GB) | 상품 14.8만 개. 가격이 없다. 이미지·상품명 대안 |
+| [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) | 명시 없음 | 리뷰 (구매 아님) | O | 이미지 URL만 | 사용자·시간·가격·상품명·이미지가 모두 연결되지만, 라이선스가 없고 이미지를 Amazon 서버에서 따로 받아야 한다 |
+| [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/data) | 비상업·학술 연구 한정 (확인) | O | O | O | 모든 것이 연결된 유일한 후보지만 공개 라이선스가 아니고, 대회 규칙에 동의해야 받을 수 있다. 공개 레포에 데이터를 올리면 안 된다 |
+| [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) | CC BY-NC-SA 4.0 (2차 출처) | O | X (이름 **길이**만) | X | 상품명 텍스트와 이미지가 없어 부적합 |
+| [Retailrocket](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset) | 불명확 | 행동 로그 | X (해시 처리) | X | 값이 모두 해시 처리되어 부적합 |
+| [AI Hub](https://aihub.or.kr) | 데이터별 약관 | 데이터별 | 데이터별 | 패션 이미지 다수 | 회원가입과 사용 신청이 필요하고 재배포가 제한된다. 쓰려면 데이터셋 페이지의 약관을 따로 확인한다 |
+| 직접 만든(합성) 거래 데이터 | - | O | 상품 데이터에서 | 상품 데이터에서 | 이미지 상품 카탈로그에 NumPy로 만든 고객·거래를 붙이면 모든 것이 연결된다. 다만 명세의 "수집하거나 제공된 샘플"에 해당하는지 운영진 확인이 필요하다 |
+
+### 데이터를 다룰 때 주의할 점
+
+- **데이터 파일은 레포에 올리지 않는다.** 이 레포는 공개 상태이고 파일도 크다(Online Retail II 엑셀만 43.5MB). `data/` 폴더에 두고 `.gitignore`로 제외한다. README에는 다운로드 위치와 출처, 라이선스만 적는다.
+- **출처 표기**: CC BY 4.0과 MIT 모두 출처와 라이선스를 밝혀야 한다. 예: `Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D`
+- **JPG 이미지와 `imread()`**: Matplotlib 3.11의 `plt.imread()`는 PNG를 포함한 모든 이미지를 내부적으로 Pillow로 읽는다. 명세가 `imread()`를 허용했으므로 `plt.imread()` 호출은 허용 범위로 보이지만, Pillow를 직접 `import`해서 쓰는 것은 금지다. 걱정되면 조합 B처럼 배열 형태의 이미지를 쓴다.
+- **이미지 크기 맞추기**: 이미지마다 크기가 다르면 명세가 허용하는 NumPy 슬라이싱(`arr[::n, ::n]`)으로 줄이거나 같은 크기로 잘라서 배열 하나로 쌓는다.
 
 ## 실행 방법
 
@@ -244,10 +313,10 @@ README.md에 비즈니스 인사이트를 3가지 이상 쓰고, 각 인사이�
 
 - **이미지 데이터가 필수인지**: 기능 요구 사항 1은 데이터 유형을 "수치형, 범주형, 날짜형, 이미지(배열) 중 최소 3가지 이상"이라고 해서 이미지가 없어도 되는 것처럼 읽힌다. 그러나 핵심 과제는 "멀티 모달 데이터(수치 + 텍스트 + 이미지 배열)"를 처리한다고 하고, 기능 요구 사항 3은 각 이미지의 평균과 표준편차를 컬럼으로 추가하라고 한다. 실제로는 이미지 배열이 있어야 요구 사항을 모두 채울 수 있다. 또 텍스트(상품명)는 피처 엔지니어링에서 필수인데 데이터 유형 목록에는 없다.
 - **데이터 건수·컬럼 수가 어느 데이터에 적용되는지**: 미션 소개는 "상품 데이터"를 분석한다고 하고, RFM에는 `customer_id`, `order_date`, `amount`를 가진 "거래 데이터"가 필요하다. "최소 1,000건 이상, 8개 이상의 컬럼" 기준이 상품 데이터, 거래 데이터, 둘을 합친 데이터 중 어디에 적용되는지 명세에 나와 있지 않다.
-- **`imread()`의 출처**: OpenCV, Pillow 등 이미지 처리 전용 라이브러리는 금지인데, 허용 범위에서는 "`imread()` 사용 가능"이라고만 적혀 있다. 허용 라이브러리 중에서는 Matplotlib의 `imread()`로 보이지만 명세가 어느 라이브러리의 함수인지 밝히지 않았다.
+- **`imread()`의 출처**: OpenCV, Pillow 등 이미지 처리 전용 라이브러리는 금지인데, 허용 범위에서는 "`imread()` 사용 가능"이라고만 적혀 있다. 허용 라이브러리 중에서는 Matplotlib의 `imread()`로 보이지만 명세가 어느 라이브러리의 함수인지 밝히지 않았다. 게다가 Matplotlib 3.11의 `imread()`는 내부적으로 Pillow를 써서 이미지를 읽으므로, "Pillow 금지"가 직접 import만 금지하는 것인지 확인이 필요하다.
 - **코호트 분석의 가입 월**: 보너스 2는 "가입 월별" 재구매율을 요구하지만, 필수 컬럼에는 가입일이 없다. 가입일 컬럼이 없으면 첫 구매월로 대신할 수 있는지 명세에 나와 있지 않다.
 
 ## 참고 자료
 
 - 과제 명세: [docs/A1-1.pdf](docs/A1-1.pdf)
-- 데이터셋 출처 후보 (명세 언급): Kaggle, AI Hub. 사용한 데이터의 출처와 라이선스를 여기에 적는다.
+- 데이터셋 후보와 라이선스: 위 [데이터셋 후보](#데이터셋-후보) 절. 실제로 사용한 데이터의 출처와 라이선스를 여기에 적는다.
