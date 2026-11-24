@@ -96,9 +96,12 @@ def fig_correlation():
     x3 = rng.uniform(0, 4, n); y3 = np.exp(x3) + rng.normal(0, 0.3, n)
     x4 = rng.normal(0, 1, n); y4 = rng.normal(0, 1, n)
     x4[:3] = [12, 13, 14]; y4[:3] = [12, 14, 13]
+    # U자 관계는 별도 난수로 만들어, 다른 그림이 쓰는 rng 순서를 바꾸지 않는다
+    r5 = np.random.default_rng(7)
+    x5 = r5.uniform(-2, 2, n); y5 = x5 ** 2 + r5.normal(0, 0.3, n)
     cases = [(x1, y1, "직선 관계"), (x2, y2, "관계 없음"), (x3, y3, "곡선이지만 한 방향 (단조)"),
-             (x4, y4, "관계 없음 + 극단값 3개")]
-    fig, axes = plt.subplots(1, 4, figsize=(16, 3.9))
+             (x4, y4, "관계 없음 + 극단값 3개"), (x5, y5, "U자 관계 (둘 다 못 잡음)")]
+    fig, axes = plt.subplots(1, 5, figsize=(20, 3.9))
     for ax, (x, y, t) in zip(axes, cases):
         ax.scatter(x, y, s=10, color=BLUE, alpha=0.6)
         ax.set(title=f"{t}\nPearson {np.corrcoef(x, y)[0, 1]:.2f} / Spearman {spearman(x, y):.2f}",

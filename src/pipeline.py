@@ -360,6 +360,52 @@ class DataAnalyzer:
             rows.append((a, b, x.corr(y)))
         return pd.DataFrame(rows, columns=["변수1", "변수2", f"상관계수({method})"])
 
+    def scale(self, columns, method="standard", params=None, suffix=None):
+        """단위가 다른 수치 컬럼을 같은 눈금으로 바꿔 새 컬럼(<컬럼>_<suffix>)으로 추가한다.
+
+        모든 방법은 (값 − 중심) ÷ 폭 한 줄로 계산한다(벡터 연산). 방법마다 중심과 폭만 다르다.
+            - "standard": 중심 = 평균, 폭 = 표준편차 → 평균 0, 표준편차 1
+            - "minmax":   중심 = 최솟값, 폭 = 최댓값 − 최솟값 → 0 ~ 1
+            - "robust":   중심 = 중앙값, 폭 = IQR(Q3 − Q1) → 극단값이 기준을 흔들지 않는다
+            - "log":      log(1 + 값). 중심·폭 없이 "몇 배 차이"를 "몇 칸 차이"로 바꾼다 (0 이상 값만)
+
+        Args:
+            columns: 바꿀 컬럼 목록.
+            method: 위 네 가지 중 하나.
+            params: 다른 데이터에서 계산한 {컬럼: (중심, 폭)}. 주면 이 데이터로 다시 계산하지 않는다.
+                학습 데이터의 기준을 검증·테스트 데이터에 그대로 적용할 때 쓴다(데이터 누수 방지).
+            suffix: 새 컬럼 이름 뒤에 붙일 말. 기본값은 method.
+
+        Returns:
+            {컬럼: (중심, 폭)}. 다른 데이터에 같은 기준을 적용할 때 params로 넘긴다.
+        """
+        if method not in ("standard", "minmax", "robust", "log"):
+            raise ValueError(f"알 수 없는 method: {method}")
+        suffix = suffix or method
+        used = {}
+        for col in columns:
+            x = self.df[col].astype(float)
+            if method == "log":
+                if (x < 0).any():
+                    raise ValueError(f"log 스케일링은 0 이상 값만 가능하다: {col}")
+                self.df[f"{col}_{suffix}"] = np.log1p(x)
+                continue
+            if params is not None:
+                center, width = params[col]
+            elif method == "standard":
+                center, width = x.mean(), x.std()
+            elif method == "minmax":
+                center, width = x.min(), x.max() - x.min()
+            else:
+                q1, q3 = x.quantile([0.25, 0.75])
+                center, width = x.median(), q3 - q1
+            if width == 0:
+                raise ValueError(f"{col}의 폭이 0이라 나눌 수 없다 ({method})")
+            self.df[f"{col}_{suffix}"] = (x - center) / width
+            used[col] = (float(center), float(width))
+        self.log.append(f"scale({', '.join(columns)}, {method}{', 기준 재사용' if params else ''}) → *_{suffix}")
+        return used
+
     # ------------------------------------------------------------------
     # 6. RFM
     # ------------------------------------------------------------------
