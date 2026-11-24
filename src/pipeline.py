@@ -35,6 +35,18 @@ DEFAULT_SEGMENT_RULES = [
 ]
 DEFAULT_SEGMENT = "Potential"
 
+# 상품이 아닌 거래 코드 (Online Retail II). 상품 코드는 숫자 5자리로 시작하고,
+# DCGS…(반려동물·파티 용품), PADS(쿠션 패드), SP1002(어린이 이젤)도 실제 상품이다.
+# 아래 코드는 상품 판매가 아니라 배송비·수수료·회계 조정 등이라 상품·고객 구매 분석에서 뺀다.
+NON_PRODUCT_CODES = {
+    "POST": "우편료", "DOT": "온라인 주문 우편료", "C2": "운송비", "C3": "운송비",
+    "M": "수동 입력(Manual)", "D": "할인", "S": "샘플", "B": "악성 채권 조정",
+    "ADJUST": "회계 조정", "ADJUST2": "회계 조정", "BANK CHARGES": "은행 수수료",
+    "AMAZONFEE": "아마존 수수료", "CRUK": "자선단체 수수료", "GIFT": "상품권",
+    "TEST001": "테스트 상품", "TEST002": "테스트 상품",
+}
+NON_PRODUCT_PREFIXES = {"GIFT_0001_": "상품권"}
+
 
 class DataAnalyzer:
     """데이터 로드부터 RFM 세분화까지 한 흐름으로 처리하는 분석기.
@@ -75,6 +87,45 @@ class DataAnalyzer:
         """컬럼별 결측치 개수와 비율(%)을 돌려준다."""
         n = self.df.isna().sum()
         return pd.DataFrame({"결측 개수": n, "결측 비율(%)": (n / len(self.df) * 100).round(2)})
+
+    # ------------------------------------------------------------------
+    # 1-1. 규칙 위반 정리 (중복, 비상품 코드)
+    # ------------------------------------------------------------------
+
+    def remove_duplicates(self, subset=None):
+        """모든 열(또는 subset 열)이 같은 행을 하나만 남기고 지운다.
+
+        Returns:
+            지운 행의 수.
+        """
+        before = len(self.df)
+        self.df = self.df.drop_duplicates(subset=subset).copy()
+        n = before - len(self.df)
+        self.log.append(f"remove_duplicates: {n:,}행 삭제")
+        return n
+
+    def exclude_codes(self, code_col, codes=None, prefixes=None):
+        """상품이 아닌 코드(배송비, 수수료, 조정 등)의 행을 뺀다.
+
+        Args:
+            code_col: 코드 컬럼 (예: StockCode).
+            codes: {코드: 이유} 사전. 대소문자를 가리지 않는다. None이면 NON_PRODUCT_CODES.
+            prefixes: {접두어: 이유} 사전. None이면 NON_PRODUCT_PREFIXES.
+
+        Returns:
+            뺀 행만 담은 DataFrame (reason 컬럼 포함).
+        """
+        codes = NON_PRODUCT_CODES if codes is None else codes
+        prefixes = NON_PRODUCT_PREFIXES if prefixes is None else prefixes
+        upper = self.df[code_col].astype(str).str.strip().str.upper()
+        reason = upper.map({k.upper(): v for k, v in codes.items()})
+        for pre, why in prefixes.items():
+            reason = reason.where(~(reason.isna() & upper.str.startswith(pre.upper())), why)
+        mask = reason.notna()
+        removed = self.df[mask].assign(reason=reason[mask])
+        self.df = self.df[~mask].copy()
+        self.log.append(f"exclude_codes({code_col}): {int(mask.sum()):,}행 제외 (코드 {removed[code_col].nunique()}종)")
+        return removed
 
     # ------------------------------------------------------------------
     # 2. 결측치 처리
