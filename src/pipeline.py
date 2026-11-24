@@ -178,6 +178,9 @@ class DataAnalyzer:
                         f"{filled:,}칸 채움, {before - filled:,}칸 남음")
         return filled
 
+    # 명세의 메서드 이름은 handle_missing_values()다. 짧은 이름으로 불러도 같은 메서드가 실행되도록 별칭을 둔다.
+    handle_missing = handle_missing_values
+
     # ------------------------------------------------------------------
     # 3. 이상치 (IQR)
     # ------------------------------------------------------------------

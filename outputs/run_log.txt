@@ -1,0 +1,28 @@
+# analysis_report.ipynb 실행 기록
+명령: cd notebooks && uv run jupyter nbconvert --to notebook --execute --inplace analysis_report.ipynb
+시작: 2026-11-24 16:21:08 KST
+끝:   2026-11-24 16:21:44 KST
+환경: Python 3.13.18, NumPy 2.5.5, pandas 3.1.1, Matplotlib 3.11.2, Seaborn 0.13.2
+
+[nbconvert 출력]
+[NbConvertApp] Converting notebook analysis_report.ipynb to notebook
+[NbConvertApp] Writing 1236699 bytes to analysis_report.ipynb
+
+[결과 확인]
+전체 셀: 98개 (코드 53개, 마크다운 45개)
+실행된 코드 셀: 53개, 실행 순서 1~53 연속: True
+에러 출력: 0개
+노트북 안 그림: 10장
+
+[outputs/ 생성 파일]
+outputs/bonus_cohort_heatmap.png  146KB
+outputs/bonus_image_features.png  70KB
+outputs/correlation_heatmaps.png  77KB
+outputs/histograms.png  49KB
+outputs/image_feature_examples.png  96KB
+outputs/monthly_revenue.png  73KB
+outputs/outlier_before_after.png  36KB
+outputs/product_scatter_bar.png  110KB
+outputs/rfm_heatmap_scatter.png  78KB
+outputs/rfm_interactive.html  203KB
+outputs/rfm_segments_bar.png  42KB
