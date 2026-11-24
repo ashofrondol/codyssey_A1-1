@@ -174,6 +174,38 @@ def fig_pareto():
     save(fig, "fig06_pareto")
 
 
+def fig_pipeline_flow():
+    """분석 흐름 7단계. ①~④는 왼쪽→오른쪽, ⑤~⑦은 그 아래에서 오른쪽→왼쪽으로 이어진다."""
+    from matplotlib.patches import FancyBboxPatch
+    steps = [("① 수집", "데이터 고르기"), ("② 탐색", "info, describe, head"),
+             ("③ 정제", "중복·비상품 코드,\n결측치, 이상치"), ("④ 피처 만들기", "이미지·텍스트 → 숫자"),
+             ("⑤ 통계·시각화", "분포, 상관"), ("⑥ 세분화", "RFM, 코호트"),
+             ("⑦ 의사결정", "인사이트, 실행 제안")]
+    colors = [GRAY, BLUE, ORANGE, GREEN, PURPLE, RED, BLUE]
+    w, h, gx = 2.3, 1.15, 0.7
+    xs = [i * (w + gx) for i in range(4)]
+    pos = [(xs[i], 1.9) for i in range(4)] + [(xs[3 - i], 0.0) for i in range(3)]
+    fig, ax = plt.subplots(figsize=(11, 3.6))
+    for (x, y), (title, sub), c in zip(pos, steps, colors):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.12",
+                                    facecolor=c + "22", edgecolor=c, linewidth=1.6))
+        ax.text(x + w / 2, y + h * 0.66, title, ha="center", va="center", fontsize=12, fontweight="bold")
+        ax.text(x + w / 2, y + h * 0.30, sub, ha="center", va="center", fontsize=9.5, color="#444441")
+    arrow = dict(arrowstyle="-|>", color="#5F5E5A", lw=1.5, mutation_scale=14)
+    for a, b in zip(pos[:-1], pos[1:]):
+        if a[1] == b[1]:
+            x0, x1 = (a[0] + w, b[0]) if b[0] > a[0] else (a[0], b[0] + w)
+            ax.annotate("", xy=(x1 + (0.05 if b[0] < a[0] else -0.05), a[1] + h / 2),
+                        xytext=(x0 + (-0.05 if b[0] < a[0] else 0.05), a[1] + h / 2), arrowprops=arrow)
+        else:
+            ax.annotate("", xy=(b[0] + w / 2, b[1] + h + 0.05), xytext=(a[0] + w / 2, a[1] - 0.05), arrowprops=arrow)
+    ax.set_xlim(-0.2, xs[3] + w + 0.2)
+    ax.set_ylim(-0.2, 1.9 + h + 0.2)
+    ax.axis("off")
+    ax.set_title("데이터 분석의 흐름: 이 과제가 거치는 7단계", fontsize=13, pad=10)
+    save(fig, "fig07_pipeline_flow")
+
+
 if __name__ == "__main__":
     fig_mean_median()
     fig_boxplot_anatomy()
@@ -181,3 +213,4 @@ if __name__ == "__main__":
     fig_image_as_array()
     fig_rfm_scoring()
     fig_pareto()
+    fig_pipeline_flow()
